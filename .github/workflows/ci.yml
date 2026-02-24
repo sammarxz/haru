@@ -14,6 +14,9 @@ jobs:
     name: Build and test
     runs-on: ubuntu-latest
 
+    env:
+      MIX_ENV: test
+
     services:
       postgres:
         image: postgres:15
@@ -22,7 +25,7 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: haru_test
         ports:
-          - 5432:5432
+          - 5433:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -35,7 +38,7 @@ jobs:
     - name: Set up Elixir
       uses: erlef/setup-beam@v1
       with:
-        elixir-version: '1.17.3' # Matching the core requirement
+        elixir-version: '1.17.3'
         otp-version: '27.0'
 
     - name: Restore dependencies cache
@@ -58,13 +61,7 @@ jobs:
       run: mix credo --strict
 
     - name: Setup Database
-      env:
-        MIX_ENV: test
-        DATABASE_URL: postgres://postgres:postgres@localhost:5432/haru_test
       run: mix ecto.setup
 
     - name: Run Tests
-      env:
-        MIX_ENV: test
-        DATABASE_URL: postgres://postgres:postgres@localhost:5432/haru_test
       run: mix test
