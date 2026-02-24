@@ -4,6 +4,27 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
+
+    <%!-- Social Sharing (Open Graph / Facebook) --%>
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={HaruWebWeb.Endpoint.url() <> ~p"/"} />
+    <meta property="og:title" content="Haru · Simple & Private Analytics" />
+    <meta
+      property="og:description"
+      content="Privacy-friendly website analytics. No cookies, no consent banners, just pure performance."
+    />
+    <meta property="og:image" content={HaruWebWeb.Endpoint.url() <> ~p"/images/social.png"} />
+
+    <%!-- Twitter Card --%>
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content={HaruWebWeb.Endpoint.url() <> ~p"/"} />
+    <meta name="twitter:title" content="Haru · Simple & Private Analytics" />
+    <meta
+      name="twitter:description"
+      content="Privacy-friendly website analytics. No cookies, no consent banners, just pure performance."
+    />
+    <meta name="twitter:image" content={HaruWebWeb.Endpoint.url() <> ~p"/images/social.png"} />
+
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="alternate icon" href="/favicon.ico" />
     <.live_title default="Haru" suffix=" · Haru">
