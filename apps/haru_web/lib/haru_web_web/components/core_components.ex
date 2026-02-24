@@ -1168,3 +1168,4 @@ defmodule HaruWebWeb.CoreComponents do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
   end
 end
+
