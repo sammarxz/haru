@@ -54,5 +54,53 @@ defmodule HaruWebWeb.DashboardLiveTest do
       html = render(lv)
       assert html =~ "Views"
     end
+
+    test "changes period", %{conn: conn, user: user, site: site} do
+      conn = log_in_user(conn, user)
+      {:ok, lv, _html} = live(conn, "/dashboard/#{site.id}")
+
+      lv |> render_click("change_period", %{"period" => "week"})
+      assert_patch(lv, "/dashboard/#{site.id}?period=week")
+    end
+
+    test "switches tabs", %{conn: conn, user: user, site: site} do
+      conn = log_in_user(conn, user)
+      {:ok, lv, _html} = live(conn, "/dashboard/#{site.id}")
+
+      lv |> render_click("set_tab", %{"table" => "devices", "tab" => "os"})
+      assert render(lv) =~ "OS"
+    end
+
+    test "creates a new site", %{conn: conn, user: user} do
+      conn = log_in_user(conn, user)
+      {:ok, lv, _html} = live(conn, "/dashboard")
+
+      lv |> render_click("toggle_create_modal")
+
+      lv
+      |> form("#site-form", %{
+        "site" => %{"name" => "New Blog", "domain" => "blog.me"}
+      })
+      |> render_submit()
+
+      assert render(lv) =~ "Site created successfully"
+
+      assert [%{name: "New Blog"}] =
+               Sites.list_sites_for_user(user.id) |> Enum.filter(&(&1.name == "New Blog"))
+    end
+
+    test "toggles dropdowns", %{conn: conn, user: user, site: site} do
+      conn = log_in_user(conn, user)
+      {:ok, lv, _html} = live(conn, "/dashboard/#{site.id}")
+
+      lv |> render_click("toggle_period_dropdown")
+      assert render(lv) =~ "Period"
+
+      lv |> render_click("toggle_site_dropdown")
+      assert render(lv) =~ "Sites"
+
+      lv |> render_click("toggle_user_dropdown")
+      assert render(lv) =~ "Log out"
+    end
   end
 end
