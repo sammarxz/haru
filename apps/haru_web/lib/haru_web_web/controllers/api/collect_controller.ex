@@ -109,5 +109,4 @@ defmodule HaruWebWeb.Api.CollectController do
   end
 
   defp sanitize_country(_), do: nil
-
 end

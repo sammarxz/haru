@@ -540,4 +540,3 @@ defmodule HaruCore.Analytics do
 
   defp prepare_ip_attr(attrs), do: attrs
 end
-

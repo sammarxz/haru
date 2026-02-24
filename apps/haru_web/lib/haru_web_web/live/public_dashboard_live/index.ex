@@ -164,7 +164,8 @@ defmodule HaruWebWeb.PublicDashboardLive.Index do
 
       <footer class="border-t border-border-default py-6 mt-8">
         <p class="text-center text-xs text-text-muted">
-          Analytics powered by <a href="/" class="font-medium text-text-secondary hover:underline">Haru</a>
+          Analytics powered by
+          <a href="/" class="font-medium text-text-secondary hover:underline">Haru</a>
         </p>
       </footer>
     </div>

@@ -742,7 +742,10 @@ defmodule HaruWebWeb.CoreComponents do
   @doc """
   Renders a clickable item inside a dropdown menu.
   """
-  attr :rest, :global, include: ~w(href method navigate patch), doc: "Arbitrary HTML attributes such as href, phx-click, etc."
+  attr :rest, :global,
+    include: ~w(href method navigate patch),
+    doc: "Arbitrary HTML attributes such as href, phx-click, etc."
+
   attr :class, :string, default: ""
   attr :active, :boolean, default: false
   slot :inner_block, required: true
@@ -1168,4 +1171,3 @@ defmodule HaruWebWeb.CoreComponents do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
   end
 end
-

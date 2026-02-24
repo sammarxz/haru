@@ -22,7 +22,11 @@ defmodule HaruWebWeb.RegistrationController do
         errors =
           Ecto.Changeset.traverse_errors(changeset, fn {msg, opts} ->
             Enum.reduce(opts, msg, fn {key, value}, acc ->
-              value_str = if is_list(value), do: Enum.map_join(value, ", ", &to_string/1), else: to_string(value)
+              value_str =
+                if is_list(value),
+                  do: Enum.map_join(value, ", ", &to_string/1),
+                  else: to_string(value)
+
               String.replace(acc, "%{#{key}}", value_str)
             end)
           end)

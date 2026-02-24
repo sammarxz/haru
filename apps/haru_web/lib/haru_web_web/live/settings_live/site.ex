@@ -104,7 +104,7 @@ defmodule HaruWebWeb.SettingsLive.Site do
       <.flash kind={:info} flash={@flash} />
       <.flash kind={:error} flash={@flash} />
       <.app_nav current_user={@current_user}></.app_nav>
-
+      
     <!-- Main Layout -->
       <main class="max-w-3xl mx-auto px-4 py-12">
         <header class="mb-12">
