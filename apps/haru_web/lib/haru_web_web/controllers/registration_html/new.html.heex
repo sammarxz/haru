@@ -1,0 +1,57 @@
+<div class="min-h-screen flex items-center justify-center bg-surface-card px-4">
+  <div class="max-w-md w-full p-8 bg-surface-card rounded-2xl">
+    <div class="text-center mb-8">
+      <a href="/" class="inline-flex items-center gap-2 mb-4">
+        <img src={~p"/images/logo-symbol.svg"} width="52" height="52" />
+      </a>
+      <h1 class="text-2xl font-bold text-text-primary tracking-tight">Create your account</h1>
+      <p class="mt-1 text-sm text-text-secondary font-medium">
+        Start tracking your website with Haru
+      </p>
+    </div>
+
+    <%= if @changeset.action do %>
+      <div class="rounded-md bg-status-error/10 border border-status-error/20 p-4 mb-6">
+        <ul class="text-sm text-status-error font-semibold list-disc list-inside">
+          <%= for {field, {msg, _}} <- @changeset.errors do %>
+            <li>{"#{field}: #{msg}"}</li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <form method="post" action="/register" class="space-y-2">
+      <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+      <.input
+        type="email"
+        name="email"
+        id="email"
+        label="Email"
+        placeholder="your@email.com"
+        required
+      />
+      <.input
+        type="password"
+        name="password"
+        id="password"
+        label="Password (min. 12 characters)"
+        placeholder="••••••••••••"
+        required
+      />
+      <div class="pt-2">
+        <.button
+          type="submit"
+          variant="strong"
+          class="w-full justify-center py-3 px-4 rounded-md font-bold"
+        >
+          Create account
+        </.button>
+      </div>
+    </form>
+
+    <p class="mt-8 text-center text-sm text-text-secondary font-medium">
+      Already have an account?
+      <a href="/login" class="text-action-primary font-bold hover:underline">Sign in</a>
+    </p>
+  </div>
+</div>
