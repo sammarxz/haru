@@ -2,6 +2,7 @@ defmodule HaruCore.AccountsTest do
   use HaruCore.DataCase, async: true
 
   alias HaruCore.Accounts
+  alias HaruCore.Accounts.User
 
   describe "register_user/1" do
     test "creates a user with valid attrs" do
@@ -117,7 +118,7 @@ defmodule HaruCore.AccountsTest do
                  password: "new_password123456"
                })
 
-      assert HaruCore.Accounts.User.valid_password?(updated_user, "new_password123456")
+      assert User.valid_password?(updated_user, "new_password123456")
       assert nil == Accounts.get_user_by_session_token(token)
     end
 

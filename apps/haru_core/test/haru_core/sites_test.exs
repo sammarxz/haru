@@ -111,7 +111,7 @@ defmodule HaruCore.SitesTest do
     test "list_sites/0 returns all sites" do
       user = user_fixture()
       _site = site_fixture(user)
-      assert length(Sites.list_sites()) >= 1
+      assert Sites.list_sites() != []
     end
 
     test "change_site_sharing/1 returns changeset" do

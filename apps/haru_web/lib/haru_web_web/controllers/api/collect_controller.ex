@@ -95,8 +95,7 @@ defmodule HaruWebWeb.Api.CollectController do
 
   defp format_ip({a, b, c, d, e, f, g, h}) do
     [a, b, c, d, e, f, g, h]
-    |> Enum.map(&Integer.to_string(&1, 16))
-    |> Enum.join(":")
+    |> Enum.map_join(":", &Integer.to_string(&1, 16))
   end
 
   defp format_ip(ip), do: to_string(ip)

@@ -14,7 +14,7 @@ defmodule HaruCore.Cache.StatsRefresherTest do
 
     # One expired, one valid
     :ets.insert(@table, {{"k1", "today"}, %{}, now - 1000})
-    :ets.insert(@table, {{"k2", "today"}, %{}, now + 10000})
+    :ets.insert(@table, {{"k2", "today"}, %{}, now + 10_000})
 
     # Trigger manually
     send(StatsRefresher, :flush_expired)

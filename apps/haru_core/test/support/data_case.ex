@@ -5,8 +5,11 @@ defmodule HaruCore.DataCase do
   """
   use ExUnit.CaseTemplate
 
+  alias Ecto.Adapters.SQL.Sandbox
+
   using do
     quote do
+      alias Ecto.Adapters.SQL.Sandbox
       alias HaruCore.Repo
       import Ecto
       import Ecto.Changeset
@@ -16,13 +19,13 @@ defmodule HaruCore.DataCase do
   end
 
   setup tags do
-    HaruCore.DataCase.setup_sandbox(tags)
+    setup_sandbox(tags)
     :ok
   end
 
   def setup_sandbox(tags) do
-    pid = Ecto.Adapters.SQL.Sandbox.start_owner!(HaruCore.Repo, shared: not tags[:async])
-    on_exit(fn -> Ecto.Adapters.SQL.Sandbox.stop_owner(pid) end)
+    pid = Sandbox.start_owner!(HaruCore.Repo, shared: not tags[:async])
+    on_exit(fn -> Sandbox.stop_owner(pid) end)
   end
 
   def errors_on(changeset) do

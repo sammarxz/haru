@@ -62,17 +62,17 @@ defmodule HaruCore.Analytics do
   """
   @spec compute_stats(pos_integer(), String.t()) :: map()
   def compute_stats(site_id, period \\ @default_period) do
+    period = if period in @valid_periods, do: period, else: @default_period
     since = period_start(period)
-    until_ = period_end(period)
+    until = period_end(period)
 
     base =
       from(e in Event,
         where: e.site_id == ^site_id and e.inserted_at >= ^since and e.name == "pageview"
       )
 
-    base = if until_, do: from(e in base, where: e.inserted_at < ^until_), else: base
+    base = if until, do: from(e in base, where: e.inserted_at < ^until), else: base
 
-    # Duration events are a separate event type sent on page hide — never counted as views
     duration_base =
       from(e in Event,
         where:
@@ -81,14 +81,50 @@ defmodule HaruCore.Analytics do
       )
 
     duration_base =
-      if until_, do: from(e in duration_base, where: e.inserted_at < ^until_), else: duration_base
+      if until, do: from(e in duration_base, where: e.inserted_at < ^until), else: duration_base
 
+    metrics = compute_metrics(base, duration_base)
+    changes = compute_all_changes(site_id, period, since, metrics)
+
+    %{
+      period: period,
+      total_views: metrics.total_views,
+      unique_visitors: metrics.unique_visitors,
+      bounce_rate: metrics.bounce_rate,
+      avg_duration_ms: metrics.avg_duration_ms,
+      top_pages: query_top_pages(base),
+      top_referrers: query_top_referrers(base),
+      top_countries: query_top_countries(base),
+      top_browsers: query_browsers(base),
+      top_os: query_os(base),
+      top_devices: query_devices(base),
+      chart_views: query_chart_views(base, period),
+      realtime_count: active_visitor_count(site_id),
+      realtime_chart: realtime_chart(site_id)
+    }
+    |> Map.merge(changes)
+  end
+
+  defp compute_metrics(base, duration_base) do
     total_views = Repo.aggregate(base, :count, :id) || 0
+    unique_visitors = Repo.one(from(e in base, select: count(e.ip_hash, :distinct))) || 0
 
-    unique_visitors =
-      Repo.one(from(e in base, select: count(e.ip_hash, :distinct))) || 0
+    bounce_rate = compute_bounce_rate(base, unique_visitors)
 
-    # Bounce rate: visitors with only one pageview
+    avg_duration_ms =
+      Repo.one(from(e in duration_base, select: type(avg(e.duration_ms), :integer)))
+
+    %{
+      total_views: total_views,
+      unique_visitors: unique_visitors,
+      bounce_rate: bounce_rate,
+      avg_duration_ms: avg_duration_ms
+    }
+  end
+
+  defp compute_bounce_rate(_base, 0), do: 0
+
+  defp compute_bounce_rate(base, unique_visitors) do
     bounced =
       Repo.one(
         from(
@@ -103,132 +139,83 @@ defmodule HaruCore.Analytics do
         )
       ) || 0
 
-    bounce_rate =
-      if unique_visitors > 0,
-        do: round(bounced / unique_visitors * 100),
-        else: 0
+    round(bounced / unique_visitors * 100)
+  end
 
-    avg_duration_ms =
-      Repo.one(from(e in duration_base, select: type(avg(e.duration_ms), :integer)))
+  defp compute_all_changes(_site_id, "all", _since, _metrics) do
+    %{views_change: nil, visitors_change: nil, bounce_change: nil, duration_change: nil}
+  end
 
-    # Previous period for % change — skipped for "all time" (no meaningful prior period)
-    {views_change, visitors_change, bounce_change, duration_change} =
-      if period == "all" do
-        {nil, nil, nil, nil}
-      else
-        prev_since = prev_period_start(period)
-        prev_until = since
-
-        prev_base =
-          from(e in Event,
-            where:
-              e.site_id == ^site_id and
-                e.inserted_at >= ^prev_since and
-                e.inserted_at < ^prev_until and
-                e.name == "pageview"
-          )
-
-        prev_views = Repo.aggregate(prev_base, :count, :id) || 0
-        prev_visitors = Repo.one(from(e in prev_base, select: count(e.ip_hash, :distinct))) || 0
-
-        prev_bounced =
-          Repo.one(
-            from(
-              outer in subquery(
-                from(e in prev_base,
-                  group_by: e.ip_hash,
-                  select: %{ip_hash: e.ip_hash, cnt: count(e.id)}
-                )
-              ),
-              where: outer.cnt == 1,
-              select: count(outer.ip_hash)
-            )
-          ) || 0
-
-        prev_bounce_rate =
-          if prev_visitors > 0, do: round(prev_bounced / prev_visitors * 100), else: 0
-
-        prev_duration_base =
-          from(e in Event,
-            where:
-              e.site_id == ^site_id and
-                e.inserted_at >= ^prev_since and
-                e.inserted_at < ^prev_until and
-                e.name == "duration" and
-                e.duration_ms > 0
-          )
-
-        prev_duration =
-          Repo.one(from(e in prev_duration_base, select: type(avg(e.duration_ms), :integer)))
-
-        {
-          compute_change_pct(total_views, prev_views),
-          compute_change_pct(unique_visitors, prev_visitors),
-          compute_change_pct(bounce_rate, prev_bounce_rate),
-          compute_change_pct(avg_duration_ms || 0, prev_duration || 0)
-        }
-      end
-
-    top_pages =
-      Repo.all(
-        from(e in base,
-          group_by: e.path,
-          select: %{path: e.path, count: count(e.id)},
-          order_by: [desc: count(e.id)],
-          limit: 10
-        )
-      )
-
-    top_referrers =
-      Repo.all(
-        from(e in base,
-          where: not is_nil(e.referrer) and e.referrer != "",
-          group_by: e.referrer,
-          select: %{referrer: e.referrer, count: count(e.id)},
-          order_by: [desc: count(e.id)],
-          limit: 10
-        )
-      )
-
-    top_countries =
-      Repo.all(
-        from(e in base,
-          where: not is_nil(e.country) and e.country != "",
-          group_by: e.country,
-          select: %{country: e.country, count: count(e.id)},
-          order_by: [desc: count(e.id)],
-          limit: 10
-        )
-      )
-
-    top_browsers = query_browsers(base)
-    top_os = query_os(base)
-    top_devices = query_devices(base)
-
-    chart_views = query_chart_views(base, period)
-    realtime_count = active_visitor_count(site_id)
-    realtime_chart_data = realtime_chart(site_id)
+  defp compute_all_changes(site_id, period, since, metrics) do
+    prev_metrics = compute_previous_metrics(site_id, period, since)
 
     %{
-      period: period,
-      total_views: total_views,
-      unique_visitors: unique_visitors,
-      bounce_rate: bounce_rate,
-      avg_duration_ms: avg_duration_ms,
-      views_change: views_change,
-      visitors_change: visitors_change,
-      bounce_change: bounce_change,
-      duration_change: duration_change,
-      top_pages: top_pages,
-      top_referrers: top_referrers,
-      top_countries: top_countries,
-      top_browsers: top_browsers,
-      top_os: top_os,
-      top_devices: top_devices,
-      chart_views: chart_views,
-      realtime_count: realtime_count,
-      realtime_chart: realtime_chart_data
+      views_change: compute_change_pct(metrics.total_views, prev_metrics.total_views),
+      visitors_change: compute_change_pct(metrics.unique_visitors, prev_metrics.unique_visitors),
+      bounce_change: compute_change_pct(metrics.bounce_rate, prev_metrics.bounce_rate),
+      duration_change:
+        compute_change_pct(metrics.avg_duration_ms || 0, prev_metrics.avg_duration_ms || 0)
     }
+  end
+
+  defp compute_previous_metrics(site_id, period, until) do
+    since = prev_period_start(period)
+
+    base =
+      from(e in Event,
+        where:
+          e.site_id == ^site_id and
+            e.inserted_at >= ^since and
+            e.inserted_at < ^until and
+            e.name == "pageview"
+      )
+
+    duration_base =
+      from(e in Event,
+        where:
+          e.site_id == ^site_id and
+            e.inserted_at >= ^since and
+            e.inserted_at < ^until and
+            e.name == "duration" and
+            e.duration_ms > 0
+      )
+
+    compute_metrics(base, duration_base)
+  end
+
+  defp query_top_pages(base) do
+    Repo.all(
+      from(e in base,
+        group_by: e.path,
+        select: %{path: e.path, count: count(e.id)},
+        order_by: [desc: count(e.id)],
+        limit: 10
+      )
+    )
+  end
+
+  defp query_top_referrers(base) do
+    Repo.all(
+      from(e in base,
+        where: not is_nil(e.referrer) and e.referrer != "",
+        group_by: e.referrer,
+        select: %{referrer: e.referrer, count: count(e.id)},
+        order_by: [desc: count(e.id)],
+        limit: 10
+      )
+    )
+  end
+
+  defp query_top_countries(base) do
+    Repo.all(
+      from(e in base,
+        where: not is_nil(e.country) and e.country != "",
+        group_by: e.country,
+        select: %{country: e.country, count: count(e.id)},
+        order_by: [desc: count(e.id)],
+        limit: 10
+      )
+    )
   end
 
   @doc "Returns realtime chart: 5-minute buckets over the last 30 minutes."
