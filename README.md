@@ -6,6 +6,8 @@ A lightweight, self-hosted web analytics platform built with **Elixir / Phoenix 
 
 Built as a portfolio project to demonstrate production-quality OTP patterns, real-time data pipelines, and a clean umbrella application structure.
 
+> **Fun fact:** The name "Haru" is a tribute to my dog, a beautiful **Akita Inu** named Haru.
+
 ---
 
 ## Features
