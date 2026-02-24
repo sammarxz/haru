@@ -9,7 +9,7 @@ ARG RUNNER_IMAGE="debian:${DEBIAN_VERSION}"
 FROM ${BUILDER_IMAGE} AS builder
 
 RUN apt-get update -y \
-  && apt-get install -y --no-install-recommends build-essential git curl \
+  && apt-get install -y --no-install-recommends build-essential git curl nodejs npm \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -34,6 +34,10 @@ RUN mix deps.compile
 # Download tailwind and esbuild binaries
 RUN mix tailwind.install --if-missing
 RUN mix esbuild.install --if-missing
+
+# Install JS dependencies
+COPY apps/haru_web/assets/package.json apps/haru_web/assets/package-lock.json ./apps/haru_web/assets/
+RUN npm install --prefix apps/haru_web/assets
 
 # Copy source (priv dirs needed before compile)
 COPY apps/ apps/
