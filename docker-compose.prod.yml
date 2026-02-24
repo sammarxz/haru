@@ -1,0 +1,48 @@
+services:
+  app:
+    image: haru:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env.prod
+    restart: unless-stopped
+    networks:
+      - haru_net
+      - traefik_default   # rede onde o Traefik escuta
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.haru.rule=Host(`haru.SEU_DOMINIO.com`)"
+      - "traefik.http.routers.haru.entrypoints=websecure"
+      - "traefik.http.routers.haru.tls.certresolver=letsencrypt"
+      - "traefik.http.services.haru.loadbalancer.server.port=4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: haru-postgres-prod
+    env_file: .env.prod
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-haru}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-haru_prod}
+    volumes:
+      - haru_pgdata_prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-haru}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks:
+      - haru_net
+
+networks:
+  haru_net:
+    driver: bridge
+  traefik_default:
+    external: true   # rede já existente do Traefik/Easypanel
+
+volumes:
+  haru_pgdata_prod:
