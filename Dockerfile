@@ -47,7 +47,7 @@ RUN mix tailwind haru_web --minify \
 
 # Digest: copy freshly built assets into _build so the release picks them up
 RUN mix phx.digest apps/haru_web/priv/static \
-      --output _build/prod/lib/haru_web/priv/static
+  --output _build/prod/lib/haru_web/priv/static
 
 # runtime.exs is evaluated at boot, not at compile time — copy last
 COPY config/runtime.exs config/
@@ -59,7 +59,7 @@ FROM ${RUNNER_IMAGE} AS final
 
 RUN apt-get update -y \
   && apt-get install -y --no-install-recommends \
-       libstdc++6 openssl libncurses6 locales ca-certificates \
+  libstdc++6 openssl libncurses6 locales ca-certificates \
   && rm -rf /var/lib/apt/lists/*
 
 RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && locale-gen
@@ -75,7 +75,12 @@ COPY --from=builder --chown=nobody:root /app/_build/prod/rel/haru ./
 
 USER nobody
 
+COPY entrypoint.sh /app/
+USER root
+RUN chmod +x /app/entrypoint.sh
+USER nobody
+
 ENV MIX_ENV="prod"
 ENV PHX_SERVER="true"
 
-CMD ["/app/bin/haru", "start"]
+CMD ["/app/entrypoint.sh"]
