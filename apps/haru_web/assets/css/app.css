@@ -1,0 +1,109 @@
+/* See the Tailwind configuration guide for advanced usage
+   https://tailwindcss.com/docs/configuration */
+
+@import "tailwindcss" source(none);
+@source "../css";
+@source "../js";
+@source "../../lib/haru_web_web";
+
+/* A Tailwind plugin that makes "hero-#{ICON}" classes available.
+   The heroicons installation itself is managed by your mix.exs */
+@plugin "../vendor/heroicons";
+
+/* daisyUI Tailwind Plugin. You can update this file by fetching the latest version with:
+   curl -sLO https://github.com/saadeghi/daisyui/releases/latest/download/daisyui.js
+   Make sure to look at the daisyUI changelog: https://daisyui.com/docs/changelog/ */
+@plugin "../vendor/daisyui" {
+  themes: false;
+}
+
+/* daisyUI theme plugin. You can update this file by fetching the latest version with:
+  curl -sLO https://github.com/saadeghi/daisyui/releases/latest/download/daisyui-theme.js
+  We ship with two themes, a light one inspired on Phoenix colors and a dark one inspired
+  on Elixir colors. Build your own at: https://daisyui.com/theme-generator/ */
+@theme {
+  /* ── COLORS ── */
+  --color-text-primary: #1A1A18;
+  --color-text-secondary: #5C5C54;
+  --color-text-muted: #A8A89E;
+  --color-text-on-dark: #F5F4F0;
+  --color-text-on-brand: #FFFFFF;
+
+  --color-surface-page: #F8F7F2;
+  --color-surface-section: #F2F1EB;
+  --color-surface-card: #FFFFFF;
+  --color-surface-subtle: #EEE9DE;
+  --color-surface-elevated: #FFFFFF;
+
+  --color-action-primary: #E8882A;
+  --color-action-primary-hover: #F0A040;
+  --color-action-primary-active: #E8882A;
+  --color-action-secondary: #F2F1EB;
+  --color-action-strong: #1A1A18;
+  --color-action-strong-hover: #2E2E28;
+
+  --color-border-default: #E0DDD4;
+  --color-border-subtle: #EDE9E0;
+  --color-border-focus: #E8882A;
+
+  --color-status-success: #3D9E6B;
+  --color-status-warning: #D4882A;
+  --color-status-error: #C94040;
+
+  /* ── TYPOGRAPHY ── */
+  --font-sans: "Inter", "Geist", system-ui, sans-serif;
+  --font-nunito: "Nunito", system-ui, sans-serif;
+
+  --text-xs: 0.75rem;     /* 12px */
+  --text-sm: 0.875rem;    /* 14px */
+  --text-base: 1rem;      /* 16px */
+  --text-lg: 1.125rem;    /* 18px */
+  --text-xl: 1.25rem;     /* 20px */
+  --text-2xl: 1.5rem;     /* 24px */
+  --text-3xl: 1.875rem;   /* 30px */
+  --text-4xl: 2.25rem;    /* 36px */
+  --text-5xl: 3rem;       /* 48px */
+
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* ── SPACING ── */
+  --spacing-1: 0.25rem;   /* 4px */
+  --spacing-2: 0.5rem;    /* 8px */
+  --spacing-3: 0.75rem;   /* 12px */
+  --spacing-4: 1rem;      /* 16px */
+  --spacing-6: 1.5rem;    /* 24px */
+  --spacing-8: 2rem;      /* 32px */
+  --spacing-12: 3rem;     /* 48px */
+  --spacing-16: 4rem;     /* 64px */
+  --spacing-20: 5rem;     /* 80px */
+
+  /* ── BORDERS & SHADOWS ── */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+
+  --shadow-sm: 0 1px 3px rgba(26,26,24,0.06);
+  --shadow-md: 0 4px 12px rgba(26,26,24,0.08);
+  --shadow-lg: 0 8px 32px rgba(26,26,24,0.12);
+  --shadow-card: 0 2px 8px rgba(26,26,24,0.07);
+  --shadow-card-hover: 0 6px 20px rgba(26,26,24,0.11);
+  --shadow-button-primary: 0 2px 8px rgba(224,123,57,0.30);
+}
+
+/* Add variants based on LiveView classes */
+@custom-variant phx-click-loading (.phx-click-loading&, .phx-click-loading &);
+@custom-variant phx-submit-loading (.phx-submit-loading&, .phx-submit-loading &);
+@custom-variant phx-change-loading (.phx-change-loading&, .phx-change-loading &);
+
+/* Use the data attribute for dark mode  */
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+/* Make LiveView wrapper divs transparent for layout */
+[data-phx-session], [data-phx-teleported-src] { display: contents }
+
+/* This file is for your main application CSS */
