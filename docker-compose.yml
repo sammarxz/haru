@@ -1,20 +1,49 @@
 services:
-  postgres:
+  db:
     image: postgres:16-alpine
-    container_name: haru-postgres
+    restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: haru_dev
-    ports:
-      - "5433:5432"
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-haru}
     volumes:
-      - haru_pgdata:/var/lib/postgresql/data
+      - haru_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-haru}"]
+      interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - haru_internal
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      DATABASE_URL: ecto://${DB_USER:-postgres}:${DB_PASSWORD:-postgres}@db/${DB_NAME:-haru}
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      PHX_HOST: ${PHX_HOST}
+      PORT: 4000
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - haru_internal
+      - public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.haru.rule=Host(`${PHX_HOST}`)"
+      - "traefik.http.routers.haru.entrypoints=websecure"
+      - "traefik.http.routers.haru.tls.certresolver=myresolver" # Change to your resolver name
+      - "traefik.http.services.haru.loadbalancer.server.port=4000"
+
+networks:
+  haru_internal:
+  public:
+    external: true
+    name: ${TRAEFIK_NETWORK:-public}
 
 volumes:
-  haru_pgdata:
+  haru_db_data:

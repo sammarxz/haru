@@ -1,0 +1,25 @@
+# Elixir
+/_build
+/deps
+/*.ez
+
+# Phoenix
+/apps/haru_web/assets/node_modules
+/apps/haru_web/priv/static/assets
+
+# Local development
+.elixir_ls/
+.env
+.env.local
+erl_crash.dump
+*.swp
+*.bak
+
+# Git
+.git
+.github
+
+# Tests
+/cover
+/test
+/apps/*/test
