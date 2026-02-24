@@ -165,3 +165,4 @@ defmodule HaruWebWeb.Layouts do
     """
   end
 end
+
