@@ -18,7 +18,7 @@ function buildEmptyBuckets() {
   for (let i = 5; i >= 0; i--) {
     const t = new Date(base.getTime() - i * 5 * 60 * 1000);
     labels.push(
-      `${String(t.getUTCHours()).padStart(2, "0")}:${String(t.getUTCMinutes()).padStart(2, "0")}`
+      `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`
     );
     data.push(0);
   }
@@ -29,7 +29,7 @@ function mergeRealtime(rows) {
   const { labels, data } = buildEmptyBuckets();
   for (const { bucket, count } of rows) {
     const d = new Date(bucket);
-    const label = `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
+    const label = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
     const idx = labels.indexOf(label);
     if (idx !== -1) data[idx] = count;
   }

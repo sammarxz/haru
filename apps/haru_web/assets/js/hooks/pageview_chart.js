@@ -110,12 +110,12 @@ function formatBucket(iso, period) {
   if (isNaN(d.getTime())) return iso;
 
   if (period === "today" || period === "yesterday") {
-    return `${String(d.getUTCHours()).padStart(2, "0")}:00`;
+    return `${String(d.getHours()).padStart(2, "0")}:00`;
   }
   if (period === "12m" || period === "year" || period === "all") {
-    return d.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });
+    return d.toLocaleDateString(undefined, { month: "short" });
   }
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
 
 function buildEmptyMap(period) {
@@ -128,39 +128,38 @@ function buildEmptyMap(period) {
       map[`${String(i).padStart(2, '0')}:00`] = 0;
     }
   } else if (period === "week" || period === "30d" || period === "month") {
-    let days = period === "30d" ? 30 : period === "month" ? new Date(utcNow.getUTCFullYear(), utcNow.getUTCMonth() + 1, 0).getUTCDate() : 7;
-    let start = new Date(utcNow);
+    let days = period === "30d" ? 30 : period === "month" ? new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() : 7;
+    let start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     
     if (period === "week") {
-      const day = start.getUTCDay() || 7;
-      start.setUTCDate(start.getUTCDate() - day + 1); // Monday
+      const day = start.getDay() || 7;
+      start.setDate(start.getDate() - day + 1); // Monday
     } else if (period === "month") {
-      start.setUTCDate(1);
+      start.setDate(1);
     } else {
-      start.setUTCDate(start.getUTCDate() - days + 1);
+      start.setDate(start.getDate() - days + 1);
     }
     
     for (let i = 0; i < days; i++) {
       const cur = new Date(start.getTime() + i * 86400 * 1000);
-      const label = cur.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+      const label = cur.toLocaleDateString(undefined, { month: "short", day: "numeric" });
       map[label] = 0;
     }
   } else if (period === "6m") {
-    // 26 weekly buckets — find the Monday of 26 weeks ago
-    const start = new Date(utcNow.getTime() - 26 * 7 * 86400 * 1000);
-    const dayOfWeek = start.getUTCDay() || 7;
-    start.setUTCDate(start.getUTCDate() - dayOfWeek + 1); // rewind to Monday
+    const start = new Date(d.getFullYear(), d.getMonth(), d.getDate() - 26 * 7);
+    const dayOfWeek = start.getDay() || 7;
+    start.setDate(start.getDate() - dayOfWeek + 1);
     for (let i = 0; i < 26; i++) {
       const cur = new Date(start.getTime() + i * 7 * 86400 * 1000);
-      const label = cur.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+      const label = cur.toLocaleDateString(undefined, { month: "short", day: "numeric" });
       map[label] = 0;
     }
   } else if (period === "year" || period === "12m") {
-    let startMonth = period === "year" ? 0 : utcNow.getUTCMonth() - 11;
-    let year = utcNow.getUTCFullYear();
+    let startMonth = period === "year" ? 0 : d.getMonth() - 11;
+    let year = d.getFullYear();
     for (let i = 0; i < 12; i++) {
-      const cur = new Date(Date.UTC(year, startMonth + i, 1));
-      const label = cur.toLocaleDateString("en-US", { month: "short", timeZone: "UTC" });
+      const cur = new Date(year, startMonth + i, 1);
+      const label = cur.toLocaleDateString(undefined, { month: "short" });
       map[label] = 0;
     }
   }

@@ -45,6 +45,7 @@ defmodule HaruWebWeb.DashboardLive.Index do
       |> assign(:snippet_copied, false)
       |> assign(:snippet_activated, false)
       |> assign(:show_period_dropdown, false)
+      |> assign(:timezone, resolve_timezone(socket))
       |> assign(:stats, nil)
       |> assign_site_changeset()
       |> assign(:sites, sites)
@@ -60,7 +61,7 @@ defmodule HaruWebWeb.DashboardLive.Index do
       if site_id && connected?(socket) do
         Phoenix.PubSub.subscribe(HaruCore.PubSub, "site:#{site_id}")
         Supervisor.ensure_started(site_id)
-        load_site_data(socket, site_id, period)
+        load_site_data(socket, site_id, period, socket.assigns.timezone)
       else
         socket
       end
@@ -106,7 +107,7 @@ defmodule HaruWebWeb.DashboardLive.Index do
         |> assign(:snippet_copied, false)
         |> assign(:snippet_activated, false)
         |> assign(:show_period_dropdown, false)
-        |> load_site_data(site_id, period)
+        |> load_site_data(site_id, period, socket.assigns.timezone)
       else
         socket
         |> assign(:sites, sites)
@@ -119,7 +120,7 @@ defmodule HaruWebWeb.DashboardLive.Index do
   @impl true
   def handle_info({:new_event, site_id}, socket) do
     if socket.assigns[:current_site_id] == site_id do
-      socket = load_site_data(socket, site_id, socket.assigns.period)
+      socket = load_site_data(socket, site_id, socket.assigns.period, socket.assigns.timezone)
 
       socket =
         if socket.assigns[:show_snippet] && socket.assigns[:snippet_copied] &&
@@ -758,13 +759,21 @@ defmodule HaruWebWeb.DashboardLive.Index do
   defp format_change(n) when n >= 0, do: "+#{n}%"
   defp format_change(n), do: "#{n}%"
 
-  defp load_site_data(socket, site_id, period) do
-    stats = Analytics.get_stats(site_id, period)
+  defp load_site_data(socket, site_id, period, timezone) do
+    stats = Analytics.get_stats(site_id, period, timezone)
 
     socket
     |> assign(:stats, stats)
     |> push_event("update_chart", %{chart: stats.chart_views, period: period})
     |> push_event("update_realtime", %{chart: stats.realtime_chart})
+  end
+
+  defp resolve_timezone(socket) do
+    if connected?(socket) do
+      get_connect_params(socket)["timezone"] || "Etc/UTC"
+    else
+      "Etc/UTC"
+    end
   end
 
   defp favicon_url(domain) when is_binary(domain) do

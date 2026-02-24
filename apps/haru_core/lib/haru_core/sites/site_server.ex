@@ -10,7 +10,7 @@ defmodule HaruCore.Sites.SiteServer do
 
   require Logger
 
-  @visitor_ttl_ms 30 * 60 * 1_000
+  @visitor_ttl_ms 5 * 60 * 1_000
 
   # ── Public API ─────────────────────────────────────────────────────────────
 

@@ -42,14 +42,14 @@ defmodule HaruCore.Analytics do
   Returns aggregated stats for a site and period, using ETS cache when available.
   Falls back to `compute_stats/2` on cache miss and stores the result.
   """
-  @spec get_stats(pos_integer(), String.t()) :: map()
-  def get_stats(site_id, period \\ @default_period) do
+  @spec get_stats(pos_integer(), String.t(), String.t()) :: map()
+  def get_stats(site_id, period \\ @default_period, timezone \\ "Etc/UTC") do
     period = if period in @valid_periods, do: period, else: @default_period
 
-    case StatsCache.get(site_id, period) do
+    case StatsCache.get(site_id, "#{period}:#{timezone}") do
       nil ->
-        stats = compute_stats(site_id, period)
-        StatsCache.put(site_id, period, stats)
+        stats = compute_stats(site_id, period, timezone)
+        StatsCache.put(site_id, "#{period}:#{timezone}", stats)
         stats
 
       stats ->
@@ -60,11 +60,11 @@ defmodule HaruCore.Analytics do
   @doc """
   Computes fresh stats directly from the database for the given period.
   """
-  @spec compute_stats(pos_integer(), String.t()) :: map()
-  def compute_stats(site_id, period \\ @default_period) do
+  @spec compute_stats(pos_integer(), String.t(), String.t()) :: map()
+  def compute_stats(site_id, period \\ @default_period, timezone \\ "Etc/UTC") do
     period = if period in @valid_periods, do: period, else: @default_period
-    since = period_start(period)
-    until = period_end(period)
+    since = period_start(period, timezone)
+    until = period_end(period, timezone)
 
     base =
       from(e in Event,
@@ -84,7 +84,7 @@ defmodule HaruCore.Analytics do
       if until, do: from(e in duration_base, where: e.inserted_at < ^until), else: duration_base
 
     metrics = compute_metrics(base, duration_base)
-    changes = compute_all_changes(site_id, period, since, metrics)
+    changes = compute_all_changes(site_id, period, since, metrics, timezone)
 
     %{
       period: period,
@@ -98,9 +98,9 @@ defmodule HaruCore.Analytics do
       top_browsers: query_browsers(base),
       top_os: query_os(base),
       top_devices: query_devices(base),
-      chart_views: query_chart_views(base, period),
+      chart_views: query_chart_views(base, period, timezone),
       realtime_count: active_visitor_count(site_id),
-      realtime_chart: realtime_chart(site_id)
+      realtime_chart: realtime_chart(site_id, timezone)
     }
     |> Map.merge(changes)
   end
@@ -142,12 +142,12 @@ defmodule HaruCore.Analytics do
     round(bounced / unique_visitors * 100)
   end
 
-  defp compute_all_changes(_site_id, "all", _since, _metrics) do
+  defp compute_all_changes(_site_id, "all", _since, _metrics, _timezone) do
     %{views_change: nil, visitors_change: nil, bounce_change: nil, duration_change: nil}
   end
 
-  defp compute_all_changes(site_id, period, since, metrics) do
-    prev_metrics = compute_previous_metrics(site_id, period, since)
+  defp compute_all_changes(site_id, period, since, metrics, timezone) do
+    prev_metrics = compute_previous_metrics(site_id, period, since, timezone)
 
     %{
       views_change: compute_change_pct(metrics.total_views, prev_metrics.total_views),
@@ -158,8 +158,8 @@ defmodule HaruCore.Analytics do
     }
   end
 
-  defp compute_previous_metrics(site_id, period, until) do
-    since = prev_period_start(period)
+  defp compute_previous_metrics(site_id, period, until, timezone) do
+    since = prev_period_start(period, timezone)
 
     base =
       from(e in Event,
@@ -219,34 +219,42 @@ defmodule HaruCore.Analytics do
   end
 
   @doc "Returns realtime chart: 5-minute buckets over the last 30 minutes."
-  @spec realtime_chart(pos_integer()) :: list(map())
-  def realtime_chart(site_id) do
+  @spec realtime_chart(pos_integer(), String.t()) :: list(map())
+  def realtime_chart(site_id, timezone \\ "Etc/UTC") do
     since = DateTime.add(DateTime.utc_now(), -30 * 60, :second)
 
-    Repo.all(
+    sub =
       from(e in Event,
         where: e.site_id == ^site_id and e.inserted_at >= ^since and e.name == "pageview",
+        select: %{
+          local_at: fragment("? AT TIME ZONE 'UTC' AT TIME ZONE ?", e.inserted_at, ^timezone),
+          id: e.id
+        }
+      )
+
+    Repo.all(
+      from(s in subquery(sub),
         group_by:
           fragment(
             "date_trunc('hour', ?) + (date_part('minute', ?)::int / 5) * interval '5 min'",
-            e.inserted_at,
-            e.inserted_at
+            s.local_at,
+            s.local_at
           ),
         select: %{
           bucket:
             fragment(
               "date_trunc('hour', ?) + (date_part('minute', ?)::int / 5) * interval '5 min'",
-              e.inserted_at,
-              e.inserted_at
+              s.local_at,
+              s.local_at
             ),
-          count: count(e.id)
+          count: count(s.id)
         },
         order_by: [
           asc:
             fragment(
               "date_trunc('hour', ?) + (date_part('minute', ?)::int / 5) * interval '5 min'",
-              e.inserted_at,
-              e.inserted_at
+              s.local_at,
+              s.local_at
             )
         ]
       )
@@ -297,133 +305,169 @@ defmodule HaruCore.Analytics do
     ) || 0
   end
 
-  defp period_start("today"),
-    do: DateTime.new!(Date.utc_today(), ~T[00:00:00], "Etc/UTC")
+  defp period_start("today", tz), do: today_at_midnight(tz)
 
-  defp period_start("yesterday"),
-    do: Date.utc_today() |> Date.add(-1) |> DateTime.new!(~T[00:00:00], "Etc/UTC")
-
-  defp period_start("week") do
-    today = Date.utc_today()
-    Date.add(today, -(Date.day_of_week(today) - 1)) |> DateTime.new!(~T[00:00:00], "Etc/UTC")
+  defp period_start("yesterday", tz) do
+    today_at_midnight(tz) |> DateTime.add(-24 * 60 * 60, :second)
   end
 
-  defp period_start("month") do
-    today = Date.utc_today()
-    Date.new!(today.year, today.month, 1) |> DateTime.new!(~T[00:00:00], "Etc/UTC")
+  defp period_start("week", tz) do
+    local_now = DateTime.now!(tz)
+
+    Date.add(DateTime.to_date(local_now), -(Date.day_of_week(local_now) - 1))
+    |> DateTime.new!(~T[00:00:00], tz)
+    |> DateTime.shift_zone!("Etc/UTC")
   end
 
-  defp period_start("year") do
-    Date.new!(Date.utc_today().year, 1, 1) |> DateTime.new!(~T[00:00:00], "Etc/UTC")
+  defp period_start("month", tz) do
+    local_now = DateTime.now!(tz)
+
+    Date.new!(local_now.year, local_now.month, 1)
+    |> DateTime.new!(~T[00:00:00], tz)
+    |> DateTime.shift_zone!("Etc/UTC")
   end
 
-  defp period_start("30d"),
+  defp period_start("year", tz) do
+    local_now = DateTime.now!(tz)
+
+    Date.new!(local_now.year, 1, 1)
+    |> DateTime.new!(~T[00:00:00], tz)
+    |> DateTime.shift_zone!("Etc/UTC")
+  end
+
+  defp period_start("30d", _),
     do: DateTime.add(DateTime.utc_now(), -30 * 24 * 60 * 60, :second)
 
-  defp period_start("6m"),
+  defp period_start("6m", _),
     do: DateTime.add(DateTime.utc_now(), -180 * 24 * 60 * 60, :second)
 
-  defp period_start("12m"),
+  defp period_start("12m", _),
     do: DateTime.add(DateTime.utc_now(), -365 * 24 * 60 * 60, :second)
 
-  defp period_start("all"), do: ~U[2000-01-01 00:00:00Z]
-  defp period_start(_), do: period_start("today")
+  defp period_start("all", _), do: ~U[2000-01-01 00:00:00Z]
+  defp period_start(_, tz), do: period_start("today", tz)
+
+  defp today_at_midnight(tz) do
+    DateTime.now!(tz)
+    |> DateTime.to_date()
+    |> DateTime.new!(~T[00:00:00], tz)
+    |> DateTime.shift_zone!("Etc/UTC")
+  end
 
   # "yesterday" is the only complete bounded period — it must stop at midnight today.
   # All other periods run from their start up to "now", which is correct.
-  defp period_end("yesterday"),
-    do: DateTime.new!(Date.utc_today(), ~T[00:00:00], "Etc/UTC")
+  defp period_end("yesterday", tz), do: today_at_midnight(tz)
 
-  defp period_end(_), do: nil
+  defp period_end(_, _), do: nil
 
-  defp prev_period_start("today"),
-    do: Date.utc_today() |> Date.add(-1) |> DateTime.new!(~T[00:00:00], "Etc/UTC")
-
-  defp prev_period_start("yesterday"),
-    do: Date.utc_today() |> Date.add(-2) |> DateTime.new!(~T[00:00:00], "Etc/UTC")
-
-  defp prev_period_start("week") do
-    today = Date.utc_today()
-    Date.add(today, -(Date.day_of_week(today) - 1) - 7) |> DateTime.new!(~T[00:00:00], "Etc/UTC")
+  defp prev_period_start("today", tz) do
+    today_at_midnight(tz) |> DateTime.add(-24 * 60 * 60, :second)
   end
 
-  defp prev_period_start("month") do
-    today = Date.utc_today()
-    prev = Date.add(Date.new!(today.year, today.month, 1), -1)
-    Date.new!(prev.year, prev.month, 1) |> DateTime.new!(~T[00:00:00], "Etc/UTC")
+  defp prev_period_start("yesterday", tz) do
+    today_at_midnight(tz) |> DateTime.add(-48 * 60 * 60, :second)
   end
 
-  defp prev_period_start("year") do
-    Date.new!(Date.utc_today().year - 1, 1, 1) |> DateTime.new!(~T[00:00:00], "Etc/UTC")
+  defp prev_period_start("week", tz) do
+    period_start("week", tz) |> DateTime.add(-7 * 24 * 60 * 60, :second)
   end
 
-  defp prev_period_start("30d"),
+  defp prev_period_start("month", tz) do
+    local_now = DateTime.now!(tz)
+
+    prev =
+      if local_now.month == 1 do
+        Date.new!(local_now.year - 1, 12, 1)
+      else
+        Date.new!(local_now.year, local_now.month - 1, 1)
+      end
+
+    prev |> DateTime.new!(~T[00:00:00], tz) |> DateTime.shift_zone!("Etc/UTC")
+  end
+
+  defp prev_period_start("year", tz) do
+    local_now = DateTime.now!(tz)
+
+    Date.new!(local_now.year - 1, 1, 1)
+    |> DateTime.new!(~T[00:00:00], tz)
+    |> DateTime.shift_zone!("Etc/UTC")
+  end
+
+  defp prev_period_start("30d", _),
     do: DateTime.add(DateTime.utc_now(), -60 * 24 * 60 * 60, :second)
 
-  defp prev_period_start("6m"),
+  defp prev_period_start("6m", _),
     do: DateTime.add(DateTime.utc_now(), -360 * 24 * 60 * 60, :second)
 
-  defp prev_period_start("12m"),
+  defp prev_period_start("12m", _),
     do: DateTime.add(DateTime.utc_now(), -730 * 24 * 60 * 60, :second)
 
-  defp prev_period_start("all"), do: ~U[2000-01-01 00:00:00Z]
-  defp prev_period_start(_), do: prev_period_start("today")
+  defp prev_period_start("all", _), do: ~U[2000-01-01 00:00:00Z]
+  defp prev_period_start(_, tz), do: prev_period_start("today", tz)
 
   defp compute_change_pct(_, 0), do: nil
 
   defp compute_change_pct(current, previous),
     do: round((current - previous) / previous * 100)
 
-  defp query_chart_views(base, period) when period in ["today", "yesterday"] do
-    Repo.all(
+  defp query_chart_views(base, period, timezone) do
+    sub =
       from(e in base,
-        group_by: fragment("date_trunc('hour', ?)", e.inserted_at),
         select: %{
-          bucket: fragment("date_trunc('hour', ?)", e.inserted_at),
-          count: count(e.id)
-        },
-        order_by: [asc: fragment("date_trunc('hour', ?)", e.inserted_at)]
+          local_at: fragment("? AT TIME ZONE 'UTC' AT TIME ZONE ?", e.inserted_at, ^timezone),
+          id: e.id
+        }
       )
-    )
-  end
 
-  defp query_chart_views(base, period) when period in ["week", "30d", "month"] do
-    Repo.all(
-      from(e in base,
-        group_by: fragment("date_trunc('day', ?)", e.inserted_at),
-        select: %{
-          bucket: fragment("date_trunc('day', ?)", e.inserted_at),
-          count: count(e.id)
-        },
-        order_by: [asc: fragment("date_trunc('day', ?)", e.inserted_at)]
-      )
-    )
-  end
+    case period do
+      p when p in ["today", "yesterday"] ->
+        Repo.all(
+          from(s in subquery(sub),
+            group_by: fragment("date_trunc('hour', ?)", s.local_at),
+            select: %{
+              bucket: fragment("date_trunc('hour', ?)", s.local_at),
+              count: count(s.id)
+            },
+            order_by: [asc: fragment("date_trunc('hour', ?)", s.local_at)]
+          )
+        )
 
-  defp query_chart_views(base, period) when period in ["6m"] do
-    Repo.all(
-      from(e in base,
-        group_by: fragment("date_trunc('week', ?)", e.inserted_at),
-        select: %{
-          bucket: fragment("date_trunc('week', ?)", e.inserted_at),
-          count: count(e.id)
-        },
-        order_by: [asc: fragment("date_trunc('week', ?)", e.inserted_at)]
-      )
-    )
-  end
+      p when p in ["week", "30d", "month"] ->
+        Repo.all(
+          from(s in subquery(sub),
+            group_by: fragment("date_trunc('day', ?)", s.local_at),
+            select: %{
+              bucket: fragment("date_trunc('day', ?)", s.local_at),
+              count: count(s.id)
+            },
+            order_by: [asc: fragment("date_trunc('day', ?)", s.local_at)]
+          )
+        )
 
-  defp query_chart_views(base, _period) do
-    Repo.all(
-      from(e in base,
-        group_by: fragment("date_trunc('month', ?)", e.inserted_at),
-        select: %{
-          bucket: fragment("date_trunc('month', ?)", e.inserted_at),
-          count: count(e.id)
-        },
-        order_by: [asc: fragment("date_trunc('month', ?)", e.inserted_at)]
-      )
-    )
+      "6m" ->
+        Repo.all(
+          from(s in subquery(sub),
+            group_by: fragment("date_trunc('week', ?)", s.local_at),
+            select: %{
+              bucket: fragment("date_trunc('week', ?)", s.local_at),
+              count: count(s.id)
+            },
+            order_by: [asc: fragment("date_trunc('week', ?)", s.local_at)]
+          )
+        )
+
+      _ ->
+        Repo.all(
+          from(s in subquery(sub),
+            group_by: fragment("date_trunc('month', ?)", s.local_at),
+            select: %{
+              bucket: fragment("date_trunc('month', ?)", s.local_at),
+              count: count(s.id)
+            },
+            order_by: [asc: fragment("date_trunc('month', ?)", s.local_at)]
+          )
+        )
+    end
   end
 
   defp query_browsers(base) do
