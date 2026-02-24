@@ -82,5 +82,52 @@ defmodule HaruCore.AccountsTest do
       assert :ok = Accounts.delete_user_session_token(token)
       assert nil == Accounts.get_user_by_session_token(token)
     end
+
+    test "delete_all_user_session_tokens invalidates all tokens for user", %{user: user} do
+      token1 = Accounts.generate_user_session_token(user)
+      token2 = Accounts.generate_user_session_token(user)
+      assert :ok = Accounts.delete_all_user_session_tokens(user)
+      assert nil == Accounts.get_user_by_session_token(token1)
+      assert nil == Accounts.get_user_by_session_token(token2)
+    end
+  end
+
+  describe "user management" do
+    setup do
+      {:ok, user} =
+        Accounts.register_user(%{email: "mgmt@example.com", password: "correct_password123"})
+
+      %{user: user}
+    end
+
+    test "get_user!/1 returns user", %{user: user} do
+      assert Accounts.get_user!(user.id).id == user.id
+    end
+
+    test "delete_user/1 deletes user", %{user: user} do
+      assert {:ok, _} = Accounts.delete_user(user)
+      assert_raise Ecto.NoResultsError, fn -> Accounts.get_user!(user.id) end
+    end
+
+    test "update_user_password/3 updates password and invalidates tokens", %{user: user} do
+      token = Accounts.generate_user_session_token(user)
+
+      assert {:ok, updated_user} =
+               Accounts.update_user_password(user, "correct_password123", %{
+                 password: "new_password123456"
+               })
+
+      assert HaruCore.Accounts.User.valid_password?(updated_user, "new_password123456")
+      assert nil == Accounts.get_user_by_session_token(token)
+    end
+
+    test "update_user_password/3 fails with invalid current password", %{user: user} do
+      assert {:error, changeset} =
+               Accounts.update_user_password(user, "wrong", %{
+                 password: "new_password123456"
+               })
+
+      assert "is not valid" in errors_on(changeset).current_password
+    end
   end
 end

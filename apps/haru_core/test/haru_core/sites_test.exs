@@ -83,5 +83,41 @@ defmodule HaruCore.SitesTest do
       site = site_fixture(user)
       assert %Ecto.Changeset{} = Sites.change_site(site)
     end
+
+    test "get_site/1 returns the site" do
+      user = user_fixture()
+      site = site_fixture(user)
+      assert Sites.get_site(site.id).id == site.id
+      assert Sites.get_site(-1) == nil
+    end
+
+    test "get_site_by_token/1 returns site" do
+      user = user_fixture()
+      site = site_fixture(user)
+      assert Sites.get_site_by_token(site.api_token).id == site.id
+      assert Sites.get_site_by_token("nil") == nil
+      assert Sites.get_site_by_token(nil) == nil
+    end
+
+    test "get_site_by_slug/1 returns public site" do
+      user = user_fixture()
+      site = site_fixture(user)
+      {:ok, site} = Sites.update_site_sharing(site, %{is_public: true, slug: "public-site"})
+      assert Sites.get_site_by_slug("public-site").id == site.id
+      assert Sites.get_site_by_slug("unknown") == nil
+      assert Sites.get_site_by_slug(nil) == nil
+    end
+
+    test "list_sites/0 returns all sites" do
+      user = user_fixture()
+      _site = site_fixture(user)
+      assert length(Sites.list_sites()) >= 1
+    end
+
+    test "change_site_sharing/1 returns changeset" do
+      user = user_fixture()
+      site = site_fixture(user)
+      assert %Ecto.Changeset{} = Sites.change_site_sharing(site)
+    end
   end
 end
