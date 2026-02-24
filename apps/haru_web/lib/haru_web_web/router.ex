@@ -19,7 +19,7 @@ defmodule HaruWebWeb.Router do
 
   pipeline :tracking do
     plug :accepts, ["json"]
-    plug CORSPlug, origin: "*", methods: ["POST", "OPTIONS"]
+    plug CORSPlug, origin: ~r/https?:\/\/.*$/, credentials: true, methods: ["POST", "OPTIONS"]
     plug HaruWebWeb.Plugs.TrackingRateLimit
   end
 
