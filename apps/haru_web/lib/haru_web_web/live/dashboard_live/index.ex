@@ -784,3 +784,4 @@ defmodule HaruWebWeb.DashboardLive.Index do
 
   defp country_flag(_), do: "🌐"
 end
+
