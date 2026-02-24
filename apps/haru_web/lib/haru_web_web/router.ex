@@ -71,6 +71,9 @@ defmodule HaruWebWeb.Router do
     live_session :public do
       live "/share/:slug", PublicDashboardLive.Index, :index
     end
+
+    get "/terms", PageController, :terms
+    get "/privacy", PageController, :privacy
   end
 
   # Authenticated routes
