@@ -1,5 +1,7 @@
 # Haru Analytics
 
+![Haru Dashboard Preview](apps/haru_web/priv/static/images/preview.png)
+
 A lightweight, self-hosted web analytics platform built with **Elixir / Phoenix LiveView**. Tracks pageviews, referrers, devices and countries in real time — without cookies, without third parties.
 
 Built as a portfolio project to demonstrate production-quality OTP patterns, real-time data pipelines, and a clean umbrella application structure.
