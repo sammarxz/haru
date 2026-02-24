@@ -1,0 +1,190 @@
+<Layouts.flash_group flash={@flash} />
+
+<div class="max-w-3xl mx-auto px-6 sm:px-8 flex flex-col min-h-screen">
+  <%!-- Navigation --%>
+  <nav class="flex items-center justify-center py-8 w-full">
+    <a href="/">
+      <img src={~p"/images/logo.svg"} class="w-32" />
+    </a>
+  </nav>
+
+  <%!-- Hero --%>
+  <header class="flex flex-col gap-24 items-center pt-16 pb-24">
+    <div class="flex flex-col items-center justify-center text-center gap-6">
+      <h1 class="max-w-xl mx-auto text-5xl sm:text-6xl font-bold font-nunito tracking-tight text-text-primary leading-[1.05]">
+        Analytics, without the <em class="text-action-primary not-italic">noise.</em>
+      </h1>
+      <p class="text-base sm:text-lg text-text-secondary leading-relaxed max-w-md">
+        Privacy-friendly website analytics. No cookies, no consent banners, just pure performance.
+      </p>
+      <div class="flex flex-col md:flex-row items-center gap-6">
+        <.button variant="strong" href="/register" size="lg">
+          Start building for free
+        </.button>
+        <a href="/demo" class="text-sm font-medium text-action-primary hover:underline">
+          View demo
+        </a>
+      </div>
+    </div>
+    <div class="flex items-center justify-center">
+      <img
+        src={~p"/images/ilustra-header.png"}
+        alt="Lightweight analytics"
+        class="w-full md:w-2/3 h-auto"
+      />
+    </div>
+  </header>
+
+  <%!-- Features --%>
+  <section class="flex flex-col gap-20 py-20">
+    <div class="text-center mb-4">
+      <h2 class="text-3xl sm:text-5xl font-bold font-nunito tracking-tight text-text-primary">
+        How we can <em class="text-action-primary not-italic">help.</em>
+      </h2>
+    </div>
+
+    <%!-- Feature 1: image left, text right --%>
+    <div class="flex flex-col md:flex-row items-center gap-12">
+      <div class="flex-1 flex items-center justify-center">
+        <img src={~p"/images/ilustra-1.png"} alt="No cookies" class="w-full h-auto" />
+      </div>
+      <div class="flex-2 flex flex-col gap-4 max-w-sm">
+        <h3 class="text-4xl font-bold font-nunito tracking-tight text-text-primary">
+          No cookies, <strong class="text-action-primary">ever.</strong>
+        </h3>
+        <p class="text-text-secondary leading-relaxed">
+          Built from the ground up to respect your visitors' privacy. No tracking scripts, no fingerprinting.
+        </p>
+        <ol class="flex flex-col gap-2 mt-2">
+          <li class="flex items-start gap-3 text-sm text-text-secondary">
+            <span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-action-primary/10 text-action-primary text-xs font-bold flex items-center justify-center">
+              1
+            </span>
+            Fully cookieless visitor tracking.
+          </li>
+          <li class="flex items-start gap-3 text-sm text-text-secondary">
+            <span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-action-primary/10 text-action-primary text-xs font-bold flex items-center justify-center">
+              2
+            </span>
+            GDPR compliant out of the box.
+          </li>
+          <li class="flex items-start gap-3 text-sm text-text-secondary">
+            <span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-action-primary/10 text-action-primary text-xs font-bold flex items-center justify-center">
+              3
+            </span>
+            No consent banner needed.
+          </li>
+        </ol>
+      </div>
+    </div>
+
+    <%!-- Feature 2: text left, image right --%>
+    <div class="flex flex-col md:flex-row-reverse items-center gap-12">
+      <div class="flex-1 flex items-center justify-center">
+        <img src={~p"/images/ilustra-2.png"} alt="Lightweight" />
+      </div>
+      <div class="flex-2 flex flex-col gap-4 max-w-sm">
+        <h3 class="text-4xl font-bold font-nunito tracking-tight text-text-primary">
+          Stays <strong class="text-action-primary">lightweight.</strong>
+        </h3>
+        <p class="text-text-secondary leading-relaxed">
+          Our script is tiny by design. Fast-loading pages mean happier visitors and better rankings.
+        </p>
+        <ol class="flex flex-col gap-2 mt-2">
+          <li class="flex items-start gap-3 text-sm text-text-secondary">
+            <span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-action-primary/10 text-action-primary text-xs font-bold flex items-center justify-center">
+              1
+            </span>
+            Less than 1KB script size.
+          </li>
+          <li class="flex items-start gap-3 text-sm text-text-secondary">
+            <span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-action-primary/10 text-action-primary text-xs font-bold flex items-center justify-center">
+              2
+            </span>
+            Loads asynchronously, zero layout shift.
+          </li>
+          <li class="flex items-start gap-3 text-sm text-text-secondary">
+            <span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-action-primary/10 text-action-primary text-xs font-bold flex items-center justify-center">
+              3
+            </span>
+            No impact on Core Web Vitals.
+          </li>
+        </ol>
+      </div>
+    </div>
+
+    <%!-- Feature 3: image left, text right --%>
+    <div class="flex flex-col md:flex-row items-center gap-12">
+      <div class="flex-1 flex items-center justify-center">
+        <img src={~p"/images/ilustra-3.png"} alt="Install in seconds" />
+      </div>
+      <div class="flex-2 flex flex-col gap-4 max-w-sm">
+        <h3 class="text-4xl font-bold font-nunito tracking-tight text-text-primary">
+          Install in <strong class="text-action-primary">seconds.</strong>
+        </h3>
+        <p class="text-text-secondary leading-relaxed">
+          No complex setup, no SDKs, no npm packages. One line and you're collecting data.
+        </p>
+        <ol class="flex flex-col gap-2 mt-2">
+          <li class="flex items-start gap-3 text-sm text-text-secondary">
+            <span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-action-primary/10 text-action-primary text-xs font-bold flex items-center justify-center">
+              1
+            </span>
+            Paste one line into your <code class="font-mono text-xs bg-surface-card border border-border-default px-1.5 py-0.5 rounded">&lt;head&gt;</code>.
+          </li>
+          <li class="flex items-start gap-3 text-sm text-text-secondary">
+            <span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-action-primary/10 text-action-primary text-xs font-bold flex items-center justify-center">
+              2
+            </span>
+            Works on any website or framework.
+          </li>
+          <li class="flex items-start gap-3 text-sm text-text-secondary">
+            <span class="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-action-primary/10 text-action-primary text-xs font-bold flex items-center justify-center">
+              3
+            </span>
+            Start seeing data immediately.
+          </li>
+        </ol>
+      </div>
+    </div>
+  </section>
+</div>
+
+<%!-- CTA --%>
+<footer class="py-24 flex flex-col items-center text-center relative overflow-hidden">
+  <div class="flex flex-col gap-4 items-center text-center justify-center">
+    <h2 class="text-4xl sm:text-5xl font-bold font-nunito tracking-tight text-text-primary">
+      Start building a better <em class="text-action-primary not-italic">future.</em>
+    </h2>
+    <p class="text-base text-text-secondary max-w-sm leading-relaxed">
+      Join thousands of creators who value privacy and performance over surveillance.
+    </p>
+    <.button variant="strong" href="/register" size="lg">
+      Start building for free
+    </.button>
+  </div>
+
+  <%!-- Footer --%>
+  <section class="relative mt-auto">
+    <div class="z-10 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-medium text-text-muted">
+      <div>&copy; {Date.utc_today().year} Haru Analytics.</div>
+      <div class="flex gap-6">
+        <a href="#" class="hover:text-text-primary transition-colors">Terms of use</a>
+        <a href="#" class="hover:text-text-primary transition-colors">Privacy policy</a>
+      </div>
+    </div>
+  </section>
+
+  <img
+    src={~p"/images/TREE.svg"}
+    class="absolute -bottom-1 left-0 w-full pointer-events-none"
+    alt=""
+    aria-hidden="true"
+  />
+  <img
+    src={~p"/images/haru-footer.png"}
+    class="hidden md:block absolute -bottom-3 right-4 w-contain pointer-events-none"
+    alt=""
+    aria-hidden="true"
+  />
+</footer>
