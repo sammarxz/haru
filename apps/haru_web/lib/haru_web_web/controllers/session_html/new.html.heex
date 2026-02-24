@@ -1,0 +1,48 @@
+<div class="min-h-screen flex items-center justify-center bg-surface-card px-4">
+  <div class="max-w-md w-full p-8 bg-surface-card rounded-2xl">
+    <div class="text-center mb-8">
+      <a href="/" class="inline-flex items-center gap-2 mb-4">
+        <img src={~p"/images/logo-symbol.svg"} width="52" height="52" />
+      </a>
+      <h1 class="text-2xl font-bold text-text-primary tracking-tight">Welcome back</h1>
+      <p class="mt-1 text-sm text-text-secondary font-medium">
+        Sign in to your analytics dashboard
+      </p>
+    </div>
+
+    <%= if @error_message do %>
+      <div class="rounded-md bg-status-error/10 border border-status-error/20 p-4 mb-6">
+        <p class="text-sm text-status-error font-semibold text-center">{@error_message}</p>
+      </div>
+    <% end %>
+
+    <form method="post" action="/login" class="space-y-2">
+      <input type="hidden" name="_csrf_token" value={get_csrf_token()} />
+      <.input
+        type="email"
+        name="email"
+        id="email"
+        label="Email"
+        placeholder="your@email.com"
+        required
+      />
+      <.password_input
+        id="password"
+        name="password"
+        label="Password"
+        placeholder="••••••••"
+        required
+      />
+      <div class="pt-2">
+        <.button type="submit" variant="strong" class="w-full">
+          Sign in
+        </.button>
+      </div>
+    </form>
+
+    <p class="mt-8 text-center text-sm text-text-secondary font-medium">
+      Don't have an account?
+      <a href="/register" class="text-action-primary font-bold hover:underline">Register</a>
+    </p>
+  </div>
+</div>
